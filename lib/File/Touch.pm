@@ -46,13 +46,14 @@ sub new
     my $class = $caller_is_obj || $caller;
     my $self = bless{}, $class;
 
-    my $atime_only  = $arg{atime_only} || 0; # If nonzero, change only the access time.
-    my $mtime_only  = $arg{mtime_only} || 0; # If nonzero, change only the modification time.
-    my $no_create   = $arg{no_create}  || 0; # If nonzero, don't create if not already there.
-    my $reference   = $arg{reference};       # If defined, use this file's times instead of current time.
-    my $time        = $arg{time};            # If defined, use this time instead of current time.
-    my $atime       = $arg{atime};           # If defined, use this time for access time instead of current time.
-    my $mtime       = $arg{mtime};           # If defined, use this time for modification time instead of current time.
+    my $atime_only     = $arg{atime_only} || 0; # If nonzero, change only the access time.
+    my $mtime_only     = $arg{mtime_only} || 0; # If nonzero, change only the modification time.
+    my $no_create      = $arg{no_create}  || 0; # If nonzero, don't create if not already there.
+    my $reference      = $arg{reference};       # If defined, use this file's times instead of current time.
+    my $no_dereference = $arg{no_dereference};  # If defined, don't follow symbolic links.
+    my $time           = $arg{time};            # If defined, use this time instead of current time.
+    my $atime          = $arg{atime};           # If defined, use this time for access time instead of current time.
+    my $mtime          = $arg{mtime};           # If defined, use this time for modification time instead of current time.
 
     if ($atime_only && $mtime_only){
         croak("Incorrect usage: 'atime_only' and 'mtime_only' are both set - they are mutually exclusive.");
@@ -71,7 +72,12 @@ sub new
         if ((defined $time) || (defined $atime) || (defined $mtime)) {
             croak("Incorrect usage: 'reference' should not be used with 'time', 'atime' or 'mtime' - ambiguous.");
         }
-        if (-e $reference) {
+        if ($no_dereference && -l $reference) {
+            my @sb = lstat($reference) or croak("Could not lstat ($reference): $!");
+            $atime = $sb[8] unless $mtime_only;
+            $mtime = $sb[9] unless $atime_only;
+        }
+        elsif (-e $reference) {
             my $sb = stat($reference) or croak("Could not stat ($reference): $!");
             $atime = $sb->atime unless $mtime_only;
             $mtime = $sb->mtime unless $atime_only;
