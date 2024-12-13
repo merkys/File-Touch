@@ -72,19 +72,18 @@ sub new
         if ((defined $time) || (defined $atime) || (defined $mtime)) {
             croak("Incorrect usage: 'reference' should not be used with 'time', 'atime' or 'mtime' - ambiguous.");
         }
+        my $sb;
         if ($no_dereference && -l $reference) {
-            my @sb = lstat($reference) or croak("Could not lstat ($reference): $!");
-            $atime = $sb[8] unless $mtime_only;
-            $mtime = $sb[9] unless $atime_only;
+            $sb = lstat($reference) or croak("Could not lstat ($reference): $!");
         }
         elsif (-e $reference) {
-            my $sb = stat($reference) or croak("Could not stat ($reference): $!");
-            $atime = $sb->atime unless $mtime_only;
-            $mtime = $sb->mtime unless $atime_only;
+            $sb = stat($reference) or croak("Could not stat ($reference): $!");
         }
         else {
             croak("Reference file ($reference) does not exist");
         }
+        $atime = $sb->atime unless $mtime_only;
+        $mtime = $sb->mtime unless $atime_only;
     }
 
     $self->{_atime}      = $atime;
